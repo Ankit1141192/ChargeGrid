@@ -1,217 +1,273 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
+  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  PermissionsAndroid,
-  Platform,
   Alert,
-  Text,
+  StatusBar,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import Geolocation from 'react-native-geolocation-service';
-import Geocoder from 'react-native-geocoding';
-// import { Ionicons } from '@expo/vector-icons'; // Install: npm install @expo/vector-icons
 
-Geocoder.init('AIzaSyCIQ9hKZdTKeX1P-xo1udaGfiRDZjs9X40');
-
-const haversineDistance = (coord1, coord2) => {
-  const toRad = (value) => (value * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(coord2.latitude - coord1.latitude);
-  const dLon = toRad(coord2.longitude - coord1.longitude);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(coord1.latitude)) *
-      Math.cos(toRad(coord2.latitude)) *
-      Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCIQ9hKZdTKeX1P-xo1udaGfiRDZjs9X40';
 
 const MapScreen = () => {
-  const [pointA, setPointA] = useState('');
-  const [pointB, setPointB] = useState('');
-  const [coordinates, setCoordinates] = useState([]);
+  const [fromLocation, setFromLocation] = useState('');
+  const [toLocation, setToLocation] = useState('');
+  const [fromCoords, setFromCoords] = useState(null);
+  const [toCoords, setToCoords] = useState(null);
   const [distance, setDistance] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+  const [currentRegion, setCurrentRegion] = useState({
+    latitude: 20.5937,
+    longitude: 78.9629,
+    latitudeDelta: 15,
+    longitudeDelta: 15,
+  });
   const mapRef = useRef(null);
 
-  const requestLocationPermission = async () => {
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    }
-    return true;
-  };
-
-  const getCurrentLocation = () => {
-    return new Promise((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => reject(error),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
-    });
-  };
-
-  const getCoordinates = async (address, useCurrentLocation = false) => {
-    if (address) {
-      const geo = await Geocoder.from(address);
-      if (!geo.results.length) throw new Error('No geocode result');
-      const loc = geo.results[0].geometry.location;
-      return { latitude: loc.lat, longitude: loc.lng };
-    }
-
-    if (useCurrentLocation) {
-      const granted = await requestLocationPermission();
-      if (!granted) throw new Error('Location permission denied');
-      return await getCurrentLocation();
-    }
-
-    throw new Error('Invalid input');
-  };
-
-  const handleGeocode = async () => {
+  const geocodeAddress = async (address) => {
     try {
-      const [coordA, coordB] = await Promise.all([
-        getCoordinates(pointA, true),
-        getCoordinates(pointB, true),
-      ]);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
+        method: 'GET',
+        headers: { 'User-Agent': 'LocationDistanceApp/1.0' },
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (data.length > 0) return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+      throw new Error('Location not found. Try a more specific address.');
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      try {
+        const googleResponse = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`);
+        const googleData = await googleResponse.json();
+        if (googleData.status === 'OK' && googleData.results.length > 0) {
+          const location = googleData.results[0].geometry.location;
+          return { latitude: location.lat, longitude: location.lng };
+        }
+      } catch (googleError) {
+        console.error('Google Geocoding fallback failed:', googleError);
+      }
+      throw new Error('Unable to find location. Please check the address.');
+    }
+  };
 
-      setCoordinates([coordA, coordB]);
-      setDistance(haversineDistance(coordA, coordB).toFixed(2));
+  const showNearbyPlaces = async () => {
+    const cities = [
+      { name: 'Mumbai', latitude: 19.0760, longitude: 72.8777 },
+      { name: 'Delhi', latitude: 28.7041, longitude: 77.1025 },
+      { name: 'Bangalore', latitude: 12.9716, longitude: 77.5946 },
+      { name: 'Chennai', latitude: 13.0827, longitude: 80.2707 },
+      { name: 'Kolkata', latitude: 22.5726, longitude: 88.3639 },
+      { name: 'Hyderabad', latitude: 17.3850, longitude: 78.4867 },
+      { name: 'Pune', latitude: 18.5204, longitude: 73.8567 },
+      { name: 'Ahmedabad', latitude: 23.0225, longitude: 72.5714 },
+    ];
+    setNearbyPlaces(cities);
+  };
 
-      setTimeout(() => {
-        mapRef.current?.fitToCoordinates([coordA, coordB], {
-          edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
+  useEffect(() => {
+    showNearbyPlaces();
+  }, []);
+
+  const calculateDistanceHaversine = (from, to) => {
+    const toRad = (x) => x * Math.PI / 180;
+    const R = 6371;
+    const dLat = toRad(to.latitude - from.latitude);
+    const dLon = toRad(to.longitude - from.longitude);
+    const lat1 = toRad(from.latitude);
+    const lat2 = toRad(to.latitude);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return {
+      distance: `${d.toFixed(2)} km`,
+      duration: `${(d / 40).toFixed(2)} hrs`, // Assuming 40km/h avg
+    };
+  };
+
+  const handleSearch = async () => {
+    if (!fromLocation.trim() || !toLocation.trim()) return Alert.alert('Error', 'Enter both locations');
+    setLoading(true);
+    try {
+      const fromCoordinates = await geocodeAddress(fromLocation);
+      const toCoordinates = await geocodeAddress(toLocation);
+      setFromCoords(fromCoordinates);
+      setToCoords(toCoordinates);
+      setDistance(calculateDistanceHaversine(fromCoordinates, toCoordinates));
+      if (mapRef.current) {
+        mapRef.current.fitToCoordinates([fromCoordinates, toCoordinates], {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
           animated: true,
         });
-      }, 500);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Please enter valid locations or allow location access.');
-      setCoordinates([]);
-      setDistance(null);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleCitySelect = (place, isFrom) => {
+    if (isFrom) setFromLocation(place.name);
+    else setToLocation(place.name);
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="From "
-          value={pointA}
-          onChangeText={setPointA}
-          style={styles.input}
-          placeholderTextColor="#888"
-        />
-        <TextInput
-          placeholder="To "
-          value={pointB}
-          onChangeText={setPointB}
-          style={styles.input}
-          placeholderTextColor="#888"
-        />
-        <TouchableOpacity style={styles.button} onPress={handleGeocode}>
-          {/* <Ionicons name="navigate-circle-outline" size={22} color="#fff" /> */}
-          <Text style={styles.buttonText}>Show Route</Text>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView style={styles.inputCard}>
+        <TextInput style={styles.input} placeholder="Starting location" value={fromLocation} onChangeText={setFromLocation} />
+        <TextInput style={styles.input} placeholder="Destination location" value={toLocation} onChangeText={setToLocation} />
+        <TouchableOpacity style={styles.button} onPress={handleSearch} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Search & Show Route</Text>}
         </TouchableOpacity>
-      </View>
-
-      {distance && (
-        <View style={styles.card}>
-          <Text style={styles.cardText}>Distance: {distance} km</Text>
-        </View>
-      )}
-
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={{
-          latitude: 23.5937,
-          longitude: 80.9629,
-          latitudeDelta: 10,
-          longitudeDelta: 10,
-        }}
-      >
-        {coordinates.map((coord, i) => (
-          <Marker
-            key={i}
-            coordinate={coord}
-            title={i === 0 ? 'From' : 'To'}
-            pinColor={i === 0 ? 'green' : 'red'}
-          />
-        ))}
-        {coordinates.length === 2 && (
-          <Polyline coordinates={coordinates} strokeWidth={4} strokeColor="blue" />
+        {distance && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Route Info</Text>
+            <Text style={styles.cardContent}>Distance: {distance.distance}</Text>
+            <Text style={styles.cardContent}>Estimated Time: {distance.duration}</Text>
+          </View>
         )}
+      </ScrollView>
+      <MapView ref={mapRef} style={styles.map} initialRegion={currentRegion}>
+        {nearbyPlaces.map((place, i) => (
+          <Marker key={i} coordinate={{ latitude: place.latitude, longitude: place.longitude }} title={place.name} pinColor="blue" />
+        ))}
+        {fromCoords && <Marker coordinate={fromCoords} title="From" pinColor="green" />}
+        {toCoords && <Marker coordinate={toCoords} title="To" pinColor="red" />}
+        {fromCoords && toCoords && <Polyline coordinates={[fromCoords, toCoords]} strokeColor="#007AFF" strokeWidth={3} />}
       </MapView>
+      <ScrollView horizontal style={styles.cityScroller} showsHorizontalScrollIndicator={false}>
+        {nearbyPlaces.map((place, index) => (
+          <View key={index} style={styles.cityCard}>
+            <Text style={styles.cityName}>{place.name}</Text>
+            <View style={styles.cityButtons}>
+              <TouchableOpacity style={[styles.cityBtn, { backgroundColor: '#28a745' }]} onPress={() => handleCitySelect(place, true)}>
+                <Text style={styles.btnText}>From</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.cityBtn, { backgroundColor: '#dc3545' }]} onPress={() => handleCitySelect(place, false)}>
+                <Text style={styles.btnText}>To</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  inputContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    marginTop: 40,
+    height: 100,
+  },
+  inputCard: {
+    padding: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderColor: '#fff',
+    height: 90,
+  },
+  input: {
+    width: '90%',
+    height: 46,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    backgroundColor: '#f9f9f9',
+    alignSelf: 'center',
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 30,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    marginLeft: 35,
+    width: '80%',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  card: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    marginTop:36,
+    marginTop: 36,
     backgroundColor: '#fff',
     elevation: 5,
     zIndex: 1,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
-  input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 10,
-    paddingHorizontal: 15,
-    backgroundColor: '#f1f1f1',
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#222'
   },
-  button: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 10,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
+  cardContent: {
     fontSize: 16,
+    color: '#555'
   },
   map: {
     flex: 1,
+    minHeight: 300
   },
-  card: {
-    position: 'absolute',
-    top: 180,
-    left: 20,
-    right: 20,
-    padding: 12,
-    backgroundColor: '#ffffffee',
+  cityScroller: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff'
+  },
+  cityCard: {
+    marginRight: 15,
+    padding: 10,
+    backgroundColor: '#fefefe',
     borderRadius: 10,
-    elevation: 5,
     alignItems: 'center',
-    zIndex: 2,
+    width: 100,
+    elevation: 1
   },
-  cardText: {
-    fontSize: 16,
+  cityName: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    marginBottom: 5,
+    color: '#333'
+  },
+  cityButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%'
+  },
+  cityBtn: {
+    flex: 1,
+    marginHorizontal: 2,
+    paddingVertical: 6,
+    borderRadius: 5,
+    alignItems: 'center'
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600'
   },
 });
 
