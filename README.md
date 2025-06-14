@@ -1,97 +1,63 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ⚡ ChargeGrid – EV Charging Station Route Planner
 
-# Getting Started
+ChargeGrid is a React Native CLI mobile application built to help electric vehicle (EV) users log in and find the best route between locations with available EV charging stations. It supports login using local storage (`AsyncStorage`) and visualizes routes on a map using Google Maps integration.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+---
 
-## Step 1: Start Metro
+## 📸 Screenshots
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+| Login Screen | Route Display | Station Locations |
+|--------------|---------------|-------------------|
+| ![Login](./assets/screenshots/login.jpg) | ![Route](./assets/screenshots/route.jpg) | ![Stations](./assets/screenshots/stations.jpg) |
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+> **Note:** You should save and rename your screenshots as shown above in an `assets/screenshots/` folder.
 
-```sh
-# Using npm
-npm start
+---
 
-# OR using Yarn
-yarn start
-```
+## 🚀 Features
 
-## Step 2: Build and run your app
+- 🔐 **Login System** using `AsyncStorage` (local storage)
+- 🗺️ **Map Integration** using `react-native-maps`
+- 📍 **EV Station Locations** on map
+- 🔄 **Route Planning** between two cities
+- 🌍 Google Maps API integration
+- 🎯 Lightweight UI & responsive design
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+---
 
-### Android
+## 📦 Tech Stack
 
-```sh
-# Using npm
-npm run android
+- React Native CLI
+- JavaScript
+- AsyncStorage
+- Google Maps API
+- `react-native-maps`
+- `react-native-geolocation-service`
+- `react-native-geocoding`
 
-# OR using Yarn
-yarn android
-```
+---
 
-### iOS
+## 🛠️ Installation & Setup
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+> Ensure you have **Node.js**, **React Native CLI**, **Android Studio**, and **Java JDK** installed.
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+```bash
+# 1. Clone the project
+git clone https://github.com/your-username/chargegrid.git
+cd chargegrid
 
-```sh
-bundle install
-```
+# 2. Install dependencies
+npm install
 
-Then, and every time you update your native dependencies, run:
+# 3. Add your Google Maps API Key
+#    In your code, replace the placeholder:
+#    const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
 
-```sh
-bundle exec pod install
-```
+# 4. Link dependencies (only if needed)
+npm react-native link
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+# 5. Start Metro Bundler
+npm react-native start
 
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+# 6. Run on Android device/emulator
+npm react-native run-android
