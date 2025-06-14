@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  StatusBar
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import car from '../../assets/images/car.jpeg';
@@ -47,6 +48,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.login}>
+      <StatusBar barStyle="dark-content" />
       <Image style={styles.image} source={car} />
 
       <Text style={styles.title}>Welcome to ChangeGrid</Text>

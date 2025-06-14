@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  StatusBar,
   ScrollView,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
@@ -32,10 +32,13 @@ const MapScreen = () => {
 
   const geocodeAddress = async (address) => {
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
-        method: 'GET',
-        headers: { 'User-Agent': 'LocationDistanceApp/1.0' },
-      });
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+        {
+          method: 'GET',
+          headers: { 'User-Agent': 'LocationDistanceApp/1.0' },
+        }
+      );
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       if (data.length > 0) return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
@@ -43,7 +46,9 @@ const MapScreen = () => {
     } catch (error) {
       console.error('Geocoding error:', error);
       try {
-        const googleResponse = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`);
+        const googleResponse = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
+        );
         const googleData = await googleResponse.json();
         if (googleData.status === 'OK' && googleData.results.length > 0) {
           const location = googleData.results[0].geometry.location;
@@ -81,12 +86,15 @@ const MapScreen = () => {
     const dLon = toRad(to.longitude - from.longitude);
     const lat1 = toRad(from.latitude);
     const lat2 = toRad(to.latitude);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLon / 2) * Math.sin(dLon / 2) *
+      Math.cos(lat1) * Math.cos(lat2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const d = R * c;
     return {
       distance: `${d.toFixed(2)} km`,
-      duration: `${(d / 40).toFixed(2)} hrs`, // Assuming 40km/h avg
+      duration: `${(d / 40).toFixed(2)} hrs`,
     };
   };
 
@@ -123,16 +131,10 @@ const MapScreen = () => {
       <ScrollView style={styles.inputCard}>
         <TextInput style={styles.input} placeholder="Starting location" value={fromLocation} onChangeText={setFromLocation} />
         <TextInput style={styles.input} placeholder="Destination location" value={toLocation} onChangeText={setToLocation} />
-        <TouchableOpacity style={styles.button} onPress={handleSearch} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Search & Show Route</Text>}
+        <TouchableOpacity style={styles.loginBtn} onPress={handleSearch} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Search & Show Route</Text>}
         </TouchableOpacity>
-        {distance && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Route Info</Text>
-            <Text style={styles.cardContent}>Distance: {distance.distance}</Text>
-            <Text style={styles.cardContent}>Estimated Time: {distance.duration}</Text>
-          </View>
-        )}
+       
       </ScrollView>
       <MapView ref={mapRef} style={styles.map} initialRegion={currentRegion}>
         {nearbyPlaces.map((place, i) => (
@@ -142,21 +144,30 @@ const MapScreen = () => {
         {toCoords && <Marker coordinate={toCoords} title="To" pinColor="red" />}
         {fromCoords && toCoords && <Polyline coordinates={[fromCoords, toCoords]} strokeColor="#007AFF" strokeWidth={3} />}
       </MapView>
-      <ScrollView horizontal style={styles.cityScroller} showsHorizontalScrollIndicator={false}>
-        {nearbyPlaces.map((place, index) => (
-          <View key={index} style={styles.cityCard}>
-            <Text style={styles.cityName}>{place.name}</Text>
-            <View style={styles.cityButtons}>
-              <TouchableOpacity style={[styles.cityBtn, { backgroundColor: '#28a745' }]} onPress={() => handleCitySelect(place, true)}>
-                <Text style={styles.btnText}>From</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.cityBtn, { backgroundColor: '#dc3545' }]} onPress={() => handleCitySelect(place, false)}>
-                <Text style={styles.btnText}>To</Text>
-              </TouchableOpacity>
-            </View>
+       {distance && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Your Route Details: </Text>
+            <Text style={styles.cardContent}>Distance: {distance.distance}</Text>
+            <Text style={styles.cardContent}>Estimated Time: {distance.duration}</Text>
           </View>
-        ))}
-      </ScrollView>
+        )}
+      {!distance && (
+        <ScrollView horizontal style={styles.cityScroller} showsHorizontalScrollIndicator={false}>
+          {nearbyPlaces.map((place, index) => (
+            <View key={index} style={styles.cityCard}>
+              <Text style={styles.cityName}>{place.name}</Text>
+              <View style={styles.cityButtons}>
+                <TouchableOpacity style={[styles.cityBtn, { backgroundColor: '#28a745' }]} onPress={() => handleCitySelect(place, true)}>
+                  <Text style={styles.btnText}>From</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.cityBtn, { backgroundColor: '#dc3545' }]} onPress={() => handleCitySelect(place, false)}>
+                  <Text style={styles.btnText}>To</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -164,111 +175,125 @@ const MapScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    marginTop: 40,
-    height: 100,
+    backgroundColor: '#fff',
   },
   inputCard: {
-    padding: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderColor: '#fff',
-    height: 90,
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 14,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 5,
   },
   input: {
-    width: '90%',
-    height: 46,
+    height: 44,
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 8,
     marginBottom: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     backgroundColor: '#f9f9f9',
-    alignSelf: 'center',
   },
-  button: {
+  loginBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 30,
-    paddingVertical: 11,
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    marginLeft: 35,
-    width: '80%',
+    width: '100%',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
   },
-  buttonText: {
+  loginText: {
+    fontWeight: '600',
+    fontSize: 16,
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
   },
+  map: {
+    flex: 1,
+  },
   card: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginTop: 36,
-    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
     elevation: 5,
-    zIndex: 1,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#222',
     marginBottom: 8,
-    color: '#222'
   },
   cardContent: {
     fontSize: 16,
-    color: '#555'
-  },
-  map: {
-    flex: 1,
-    minHeight: 300
+    color: '#555',
+    marginBottom: 4,
   },
   cityScroller: {
-    paddingVertical: 10,
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
     paddingHorizontal: 10,
-    backgroundColor: '#fff'
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
   cityCard: {
-    marginRight: 15,
+    marginRight: 10,
     padding: 10,
-    backgroundColor: '#fefefe',
+    backgroundColor: '#ffffff',
     borderRadius: 10,
+    width: 110,
     alignItems: 'center',
-    width: 100,
-    elevation: 1
+    elevation: 2,
   },
   cityName: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 5,
-    color: '#333'
+    color: '#333',
+    marginBottom: 6,
   },
   cityButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%'
+    width: '100%',
   },
   cityBtn: {
     flex: 1,
     marginHorizontal: 2,
     paddingVertical: 6,
-    borderRadius: 5,
-    alignItems: 'center'
+    borderRadius: 6,
+    alignItems: 'center',
   },
   btnText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '600'
+    fontWeight: '600',
   },
 });
+
 
 export default MapScreen;
