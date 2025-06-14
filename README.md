@@ -8,7 +8,9 @@ ChargeGrid is a React Native CLI mobile application built to help electric vehic
 
 | Login Screen | Route Display | Station Locations |
 |--------------|---------------|-------------------|
-| ![Login](./assets/screenshots/login.jpg) | ![Route](./assets/screenshots/route.jpg) | ![Stations](./assets/screenshots/stations.jpg) |
+| ![Login](https://github.com/user-attachments/assets/89b2b72c-3b5e-4594-88d4-70c50288809f) | ![Route](https://github.com/user-attachments/assets/1e20914b-7153-47c3-ad15-392a1dc56dd3) | ![Stations](https://github.com/user-attachments/assets/5533f2ea-3d3b-4a9f-8c66-53737ff2a53c) |
+
+
 
 > **Note:** You should save and rename your screenshots as shown above in an `assets/screenshots/` folder.
 
